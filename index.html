@@ -15,7 +15,8 @@
       {
         "imports": {
           "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+          "npyjs": "https://cdn.jsdelivr.net/npm/npyjs@1.6.0/dist/npy.js"
         }
       }
     </script>
@@ -29,6 +30,9 @@
         <option value="freq">Frequency slice</option>
       </select>
       <span style="margin-left:12px"></span>
+      <label for="freqSlider" id="freqLabel" style="margin-left:8px;display:none;">Freq</label>
+      <input id="freqSlider" type="range" min="0" max="114" step="1" value="57" style="display:none;" />
+      <span id="freqValue" style="margin-left:4px;display:none;font-size:0.85em;"></span>
   <label for="density" style="margin-left:8px;">Density</label>
   <input id="density" type="range" min="0" max="30" step="1" value="1.0" />
   <label for="step" style="margin-left:8px;">Step</label>
