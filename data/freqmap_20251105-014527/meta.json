@@ -1,0 +1,35 @@
+{
+  "nu0": 230537993480.0,
+  "v_turb": 0.06,
+  "use_local_df": false,
+  "freqs_len": 115,
+  "shapes": {
+    "center_index": [
+      222,
+      222,
+      100
+    ],
+    "sigma_channels": [
+      222,
+      222,
+      100
+    ],
+    "fwhm_channels": [
+      222,
+      222,
+      100
+    ]
+  },
+  "paths": {
+    "cfg": "/nfs/rhea.dgp/u8/d/len/code/radjax-dev/configs/HD163296/nerfmlp_co21_axisym_temp.yaml",
+    "params": "/nfs/rhea.dgp/u8/d/len/code/radjax-dev/data/HD163296/Flaherty/HD163296_CO_highres_cen.cm.params.yaml",
+    "data": "/scratch/ondemand28/len/data/radjax/flaherty/HD163296_CO_highres_cen.cm.fits"
+  },
+  "mol": {
+    "transition": 2,
+    "nu0": 230538000000.0,
+    "a_ud": 6.91e-07,
+    "b_ud": 3824699.8066032655,
+    "b_du": 6374499.67767211
+  }
+}
