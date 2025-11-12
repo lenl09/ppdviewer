@@ -7,9 +7,13 @@
     <style>
       html, body { height: 100%; margin: 0; background: #0b0e13; color: #cfd8e3; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; }
       #app { position: fixed; inset: 0; }
-      #ui { position: fixed; top: 12px; left: 12px; display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; backdrop-filter: blur(6px); }
+      #view1 { position: fixed; inset: 0; }
+      #view2 { position: fixed; bottom: 12px; right: 12px; width: 256px; height: 256px; border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+      canvas { width: 100% !important; height: 100% !important; }
+      #ui { position: fixed; top: 12px; left: 12px; display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; backdrop-filter: blur(6px); z-index: 100; }
       select, button { background: #121826; color: #e5e7eb; border: 1px solid #1f2937; border-radius: 6px; padding: 6px 10px; }
       a { color: #93c5fd; text-decoration: none; }
+      .view-label { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 2px 8px; border-radius: 4px; font-size: 0.75em; pointer-events: none; z-index: 10; }
     </style>
     <script type="importmap">
       {
@@ -22,7 +26,17 @@
     </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div id="view1"></div>
+      <div id="view2">
+            <div class="view-label">PSF Blurred</div>
+            <div id="view2-controls" style="position:absolute; top:6px; left:6px; right:6px; display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:4px 6px; font-size:0.8em;">
+              <label for="posangPSF">Pos angle</label>
+              <input id="posangPSF" type="range" min="0" max="360" step="1" value="0" style="flex:1;" />
+              <span id="posangPSFValue">0°</span>
+            </div>
+      </div>
+    </div>
     <div id="ui">
       <label for="mode">Mode</label>
       <select id="mode">
@@ -33,14 +47,34 @@
       <label for="freqSlider" id="freqLabel" style="margin-left:8px;display:none;">Freq</label>
       <input id="freqSlider" type="range" min="0" max="114" step="1" value="57" style="display:none;" />
       <span id="freqValue" style="margin-left:4px;display:none;font-size:0.85em;"></span>
-  <label for="density" style="margin-left:8px;">Density</label>
-  <input id="density" type="range" min="0" max="30" step="1" value="1.0" />
-  <label for="step" style="margin-left:8px;">Step</label>
-  <input id="step" type="range" min="0.25" max="2.0" step="0.01" value="0.9" />
-  <label for="logMin" style="margin-left:8px;">log10 min</label>
-  <input id="logMin" type="number" step="0.1" value="3.0" style="width:80px;" />
-  <label for="logMax" style="margin-left:8px;">log10 max</label>
-  <input id="logMax" type="number" step="0.1" value="10.0" style="width:80px;" />
+      <label for="density" style="margin-left:8px;">Density</label>
+  <input id="density" type="range" min="0" max="50" step="1" value="25.0" />
+  <span id="densityValue" style="font-size:0.75em;width:42px;text-align:right;">1</span>
+      <label for="step" style="margin-left:8px;">Step</label>
+      <input id="step" type="range" min="0.25" max="2.0" step="0.01" value="0.9" />
+      <label for="logMin" style="margin-left:8px;">log10 min</label>
+      <input id="logMin" type="number" step="0.1" value="0" style="width:80px;" />
+      <label for="logMax" style="margin-left:8px;">log10 max</label>
+      <input id="logMax" type="number" step="0.1" value="8.0" style="width:80px;" />
+  <label for="bgBrightness" id="bgBrightnessLabel" style="margin-left:8px;display:none;">Disk opacity</label>
+  <input id="bgBrightness" type="range" min="0.0" max="1.0" step="0.05" value="1.0" style="display:none;" />
+  <span id="bgBrightnessValue" style="display:none;font-size:0.75em;width:46px;text-align:right;">1.00</span>
+  <label for="broadeningScale" id="broadeningLabel" style="margin-left:8px;display:none;">Broadening</label>
+  <input id="broadeningScale" type="range" min="0.5" max="150.0" step="10.0" value="1.0" style="display:none;" />
+  <label for="bandIntegrate" id="bandIntegrateLabel" style="margin-left:8px;display:none;">Band</label>
+  <input id="bandIntegrate" type="checkbox" checked style="display:none;" />
+  <label for="weightGamma" id="weightGammaLabel" style="margin-left:8px;display:none;">Gamma</label>
+  <input id="weightGamma" type="range" min="0.15" max="2.5" step="0.05" value="1.0" style="display:none;" />
+  <span id="weightGammaValue" style="display:none;font-size:0.75em;width:50px;text-align:right;">1.00</span>
+  <label for="showWeight" id="showWeightLabel" style="margin-left:8px;display:none;">Weight</label>
+  <input id="showWeight" type="checkbox" style="display:none;" />
+  <label for="minSigmaCh" id="minSigmaChLabel" style="margin-left:8px;display:none;">Turbulence</label>
+  <input id="minSigmaCh" type="range" min="0.0" max="10.0" step="0.1" value="0.0" style="display:none;" />
+  <span id="minSigmaChValue" style="display:none;font-size:0.75em;width:54px;text-align:right;">0.00</span>
+      <label for="blurSize" style="margin-left:8px;">PSF Blur</label>
+  <input id="blurSize" type="range" min="0.0" max="30.0" step="1" value="10.0" />
+  <span id="blurSizeValue" style="font-size:0.75em;width:42px;text-align:right;">10</span>
+  <button id="obsCamBtn" style="margin-left:12px;">Match observation camera</button>
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>
