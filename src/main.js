@@ -1093,6 +1093,16 @@ function computeAndSetObservationDefault() {
   applyObservationPose();
 }
 
+// Align camera to X-Y plane (z = positive looking down at disk from above)
+function alignCameraToXY() {
+  const dist = camera.position.distanceTo(controls.target);
+  // Position camera at +z, looking along -z axis (down at the disk)
+  // Keep the current distance
+  camera.position.set(0, 0, dist);
+  controls.target.set(0, 0, 0);
+  controls.update();
+}
+
 // UI: rendering mode
 const modeSelect = document.getElementById('mode');
 const freqSlider = document.getElementById('freqSlider');
@@ -1117,6 +1127,7 @@ const broadeningValue = document.getElementById('broadeningValue');
 const densityValue = document.getElementById('densityValue');
 const blurSizeValue = document.getElementById('blurSizeValue');
 const obsCamBtn = document.getElementById('obsCamBtn');
+const alignYZBtn = document.getElementById('alignYZBtn');
 // PSF view rotation (image-plane) controls
 const posangPSFSlider = document.getElementById('posangPSF');
 const posangPSFValue = document.getElementById('posangPSFValue');
@@ -1369,6 +1380,9 @@ updateBlurSize();
 
 // Button: Match observation camera
 obsCamBtn && obsCamBtn.addEventListener('click', applyObservationPose);
+
+// Button: Align camera to X-Y plane
+alignYZBtn && alignYZBtn.addEventListener('click', alignCameraToXY);
 
 // Inclination slider: update camera based on slider (-90 to 90 range)
 // 0 = face-on, 90 = edge-on, -90 = edge-on from other side
