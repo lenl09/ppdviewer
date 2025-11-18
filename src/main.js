@@ -953,6 +953,69 @@ function applyBoundsScale() {
   scene.add(hemi);
 }
 
+// Add 3D axis arrows for reference
+{
+  const axisLength = 1.2;
+  
+  // X-axis (red)
+  {
+    const arrow = new THREE.ArrowHelper(
+      new THREE.Vector3(1, 0, 0),
+      new THREE.Vector3(0, 0, 0),
+      axisLength,
+      0xff0000,
+      axisLength/10,  // head length
+      axisLength/50  // head width
+    );
+    // Disable depth test so arrows always appear on top
+    arrow.traverse((child) => {
+      if (child.material) {
+        child.material.depthTest = false;
+        child.material.depthWrite = false;
+      }
+    });
+    scene.add(arrow);
+  }
+  
+  // Y-axis (green)
+  {
+    const arrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(0, 0, 0),
+      axisLength,
+      0x00ff00,
+      axisLength/10,  // head length
+      axisLength/50 // head width
+    );
+    arrow.traverse((child) => {
+      if (child.material) {
+        child.material.depthTest = false;
+        child.material.depthWrite = false;
+      }
+    });
+    scene.add(arrow);
+  }
+  
+  // Z-axis (blue)
+  {
+    const arrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(0, 0, 0),
+      axisLength,
+      0x0000ff,
+      axisLength/10,  // head length
+      axisLength/50  // head width
+    );
+    arrow.traverse((child) => {
+      if (child.material) {
+        child.material.depthTest = false;
+        child.material.depthWrite = false;
+      }
+    });
+    scene.add(arrow);
+  }
+}
+
 // Compute observation-based camera quaternion from inclination (deg), phi (deg), pos angle (deg)
 function computeObservationPose(inclDeg, phiDeg, posangDeg) {
   const i = inclDeg * Math.PI / 180;
@@ -978,6 +1041,34 @@ function computeObservationPose(inclDeg, phiDeg, posangDeg) {
   const m = new THREE.Matrix4().makeBasis(xCam, yCam, zCam);
   const q = new THREE.Quaternion().setFromRotationMatrix(m);
   return q;
+}
+
+// Extract inclination from camera position (-90 to 90 degrees)
+// 0 = face-on (looking straight down, z = distance)
+// 90 = edge-on looking from +y (z = 0)
+// -90 = edge-on looking from -y (z = 0)
+function getInclinationFromCamera() {
+  const camPos = camera.position;
+  const dist = Math.sqrt(camPos.x * camPos.x + camPos.y * camPos.y + camPos.z * camPos.z);
+  if (dist < 1e-6) return currentInclination;
+  
+  // ALMA convention: inclination is the angle between disk rotational axis (z-axis) and line of sight
+  // i = 0°: face-on (disk axis aligned with z, disk appears circular)
+  // i = 90°: edge-on (disk axis perpendicular to z, disk appears edge-on)
+  // The angle magnitude depends only on z; sign comes from y-axis:
+  // y > 0 (pointing towards camera): positive inclination
+  // y < 0 (pointing away from camera): negative inclination
+  
+  const cosIncl = camPos.z / dist;
+  const inclRad = Math.acos(Math.max(-1, Math.min(1, cosIncl)));
+  let inclDeg = inclRad * 180 / Math.PI;
+  
+  // Apply sign based on y-component: negative if y < 0
+  if (camPos.y < 0) {
+    inclDeg = -inclDeg;
+  }
+  
+  return inclDeg;
 }
 
 // Default observation parameters
@@ -1037,6 +1128,11 @@ const psfVmaxSlider = document.getElementById('psfVmax');
 const psfVminValue = document.getElementById('psfVminValue');
 const psfVmaxValue = document.getElementById('psfVmaxValue');
 const psfManualControls = document.getElementById('psfManualControls');
+
+// Inclination slider (for observational geometry)
+const inclSlider = document.getElementById('inclSlider');
+const inclValue = document.getElementById('inclValue');
+let currentInclination = 47.5; // Default inclination in degrees (ALMA convention)
 
 function updateMode() {
   renderMode = modeSelect.value === 'freq' ? 1 : 0;
@@ -1274,6 +1370,61 @@ updateBlurSize();
 // Button: Match observation camera
 obsCamBtn && obsCamBtn.addEventListener('click', applyObservationPose);
 
+// Inclination slider: update camera based on slider (-90 to 90 range)
+// 0 = face-on, 90 = edge-on, -90 = edge-on from other side
+function updateInclinationFromSlider() {
+  if (!inclSlider) return;
+  const sliderInclDeg = parseFloat(inclSlider.value); // -90 to 90 range
+  currentInclination = sliderInclDeg;
+  if (inclValue) inclValue.textContent = `${sliderInclDeg.toFixed(1)}°`;
+  
+  // ALMA convention: inclination angle between disk axis and line of sight
+  // Magnitude (0-90°) comes from angle with z-axis
+  // Sign comes from y-axis: positive if y > 0, negative if y < 0
+  
+  const inclMagRad = Math.abs(sliderInclDeg) * Math.PI / 180;
+  
+  // Update camera position while maintaining distance
+  const camPos = camera.position;
+  const dist = Math.sqrt(camPos.x * camPos.x + camPos.y * camPos.y + camPos.z * camPos.z);
+  
+  // New z: based on inclination magnitude (always non-negative)
+  const newZ = dist * Math.cos(inclMagRad);
+  
+  // xy distance from inclination magnitude
+  const xyDistMag = dist * Math.sin(inclMagRad);
+  
+  // Determine sign of y-component based on slider inclination sign
+  // Preserve azimuthal angle (phi) in the xy plane
+  if (xyDistMag > 1e-6) {
+    // Get current azimuthal angle
+    const currentXY = Math.sqrt(camPos.x * camPos.x + camPos.y * camPos.y);
+    let phi = Math.atan2(camPos.y, camPos.x);
+    
+    // Scale xy to new distance while keeping phi
+    const scale = xyDistMag / (currentXY > 1e-6 ? currentXY : 1);
+    camera.position.x = xyDistMag * Math.cos(phi);
+    camera.position.y = xyDistMag * Math.sin(phi);
+    
+    // Apply sign: if slider inclination is negative, flip y-component
+    if (sliderInclDeg < 0) {
+      camera.position.y = -Math.abs(camera.position.y);
+    } else {
+      camera.position.y = Math.abs(camera.position.y);
+    }
+  } else if (xyDistMag < 1e-6) {
+    // Face-on: x and y both zero
+    camera.position.x = 0;
+    camera.position.y = 0;
+  }
+  
+  camera.position.z = newZ;
+  
+  controls.update();
+}
+
+inclSlider && inclSlider.addEventListener('input', updateInclinationFromSlider);
+
 function render() {
   requestAnimationFrame(render);
   // Update per-frame uniforms
@@ -1288,6 +1439,14 @@ function render() {
 
   // Update camera controls (smooth damping)
   controls.update();
+
+  // Update inclination slider based on current camera position
+  const newIncl = getInclinationFromCamera();
+  currentInclination = newIncl;
+  if (inclSlider && Math.abs(parseFloat(inclSlider.value) - newIncl) > 0.1) {
+    inclSlider.value = newIncl.toFixed(1);
+    if (inclValue) inclValue.textContent = `${newIncl.toFixed(1)}°`;
+  }
 
   // Apply pending non-uniform scaling once bounds are available
   if (needsScaleUpdate) {
