@@ -6,7 +6,13 @@ const infernoColormap = [
   [0,0,4],[1,0,5],[1,1,6],[1,1,8],[2,1,10],[2,2,12],[2,2,14],[3,2,16],[4,3,18],[4,3,20],[5,4,23],[6,4,25],[7,5,27],[8,5,29],[9,6,31],[10,7,34],[11,7,36],[12,8,38],[13,8,41],[14,9,43],[16,9,45],[17,10,48],[18,10,50],[20,11,52],[21,11,55],[22,11,57],[24,12,60],[25,12,62],[27,12,65],[28,12,67],[30,12,69],[31,12,72],[33,12,74],[35,12,76],[36,12,79],[38,12,81],[40,11,83],[41,11,85],[43,11,87],[45,11,89],[47,10,91],[49,10,92],[50,10,94],[52,10,95],[54,9,97],[56,9,98],[57,9,99],[59,9,100],[61,9,101],[62,9,102],[64,10,103],[66,10,104],[68,10,104],[69,10,105],[71,11,106],[73,11,106],[74,12,107],[76,12,107],[77,13,108],[79,13,108],[81,14,108],[82,14,109],[84,15,109],[85,15,109],[87,16,110],[89,16,110],[90,17,110],[92,18,110],[93,18,110],[95,19,110],[97,19,110],[98,20,110],[100,21,110],[101,21,110],[103,22,110],[105,22,110],[106,23,110],[108,24,110],[109,24,110],[111,25,110],[113,25,110],[114,26,110],[116,26,110],[117,27,110],[119,28,109],[120,28,109],[122,29,109],[124,29,109],[125,30,109],[127,30,108],[128,31,108],[130,32,108],[132,32,107],[133,33,107],[135,33,107],[136,34,106],[138,34,106],[140,35,105],[141,35,105],[143,36,105],[144,37,104],[146,37,104],[147,38,103],[149,38,103],[151,39,102],[152,39,102],[154,40,101],[155,41,100],[157,41,100],[159,42,99],[160,42,99],[162,43,98],[163,44,97],[165,44,96],[166,45,96],[168,46,95],[169,46,94],[171,47,94],[173,48,93],[174,48,92],[176,49,91],[177,50,90],[179,50,90],[180,51,89],[182,52,88],[183,53,87],[185,53,86],[186,54,85],[188,55,84],[189,56,83],[191,57,82],[192,58,81],[193,58,80],[195,59,79],[196,60,78],[198,61,77],[199,62,76],[200,63,75],[202,64,74],[203,65,73],[204,66,72],[206,67,71],[207,68,70],[208,69,69],[210,70,68],[211,71,67],[212,72,66],[213,74,65],[215,75,63],[216,76,62],[217,77,61],[218,78,60],[219,80,59],[221,81,58],[222,82,56],[223,83,55],[224,85,54],[225,86,53],[226,87,52],[227,89,51],[228,90,49],[229,92,48],[230,93,47],[231,94,46],[232,96,45],[233,97,43],[234,99,42],[235,100,41],[235,102,40],[236,103,38],[237,105,37],[238,106,36],[239,108,35],[239,110,33],[240,111,32],[241,113,31],[241,115,29],[242,116,28],[243,118,27],[243,120,25],[244,121,24],[245,123,23],[245,125,21],[246,126,20],[246,128,19],[247,130,18],[247,132,16],[248,133,15],[248,135,14],[248,137,12],[249,139,11],[249,140,10],[249,142,9],[250,144,8],[250,146,7],[250,148,7],[251,150,6],[251,151,6],[251,153,6],[251,155,6],[251,157,7],[252,159,7],[252,161,8],[252,163,9],[252,165,10],[252,166,12],[252,168,13],[252,170,15],[252,172,17],[252,174,18],[252,176,20],[252,177,22],[252,179,24],[252,181,26],[252,183,28],[252,185,30],[251,187,33],[251,189,35],[251,191,37],[250,193,39],[250,195,42],[250,197,44],[249,199,47],[249,201,49],[248,203,52],[248,205,55],[247,207,58],[247,209,61],[246,211,64],[245,213,67],[245,215,70],[244,217,73],[243,219,76],[243,221,80],[242,223,83],[241,225,86],[241,227,90],[240,229,93],[239,231,97],[238,233,100],[237,235,104],[236,237,108],[236,239,111],[235,241,115],[234,243,119],[233,245,123],[232,247,127],[231,249,131],[230,251,135],[229,253,139],[228,255,143]
 ];
 
+// const BASE_URL = './data/parametric_export_256';
+// const VOLUME_PATH = './data/parametric_export_256/co_volume_256x256x256';
+
+
 const BASE_URL = './data/freqmap_20251117-190836';
+const VOLUME_PATH = `./data/ensemble_export_256/co_volume_ensemble_meanT_256x256x256`;
+
 
 // Convert inferno index (0-1) to RGB with linear interpolation
 function infernoColor(t) {
@@ -251,12 +257,12 @@ let needsScaleUpdate = true;
 // Try to load CO density volume from data folder (RAW + JSON)
 async function loadExternalDensity() {
   try {
-    const jres = await fetch('./data/co_volume_meanT_160x160x160.json');
+    const jres = await fetch(`${VOLUME_PATH}.json`);
     if (!jres.ok) return;
     const meta = await jres.json();
     const [Nz, Ny, Nx] = meta.shape;
     const { x: [xmin, xmax], y: [ymin, ymax], z: [zmin, zmax] } = meta.bounds;
-    const rres = await fetch('./data/co_volume_meanT_160x160x160.raw');
+    const rres = await fetch(`${VOLUME_PATH}.raw`);
     if (!rres.ok) return;
     const buf = await rres.arrayBuffer();
     const data = new Float32Array(buf);
@@ -286,6 +292,14 @@ async function loadExternalDensity() {
 
 // Rendering mode: 0 = Plain, 1 = Frequency slice (placeholder)
 let renderMode = 1;
+
+// Debug wireframe flag
+const SHOW_WIREFRAME = false; // Set to true to show debug wireframe outline
+
+// PSF colormap range controls
+let psfColormapMode = 'auto'; // 'auto' or 'manual'
+let psfVmin = 0.0; // Manual vmin value (0-1)
+let psfVmax = 1.0; // Manual vmax value (0-1)
 
 // Frequency slice data
 let freqData = {
@@ -905,17 +919,20 @@ const cube = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), material);
 cube.rotation.z = +Math.PI;
 scene.add(cube);
 
-// Add wireframe outline for debugging
-const wireframeGeometry = new THREE.BoxGeometry(1, 1, 1);
-const wireframeMaterial = new THREE.MeshBasicMaterial({ 
-  color: 0xffffff, 
-  wireframe: true,
-  transparent: true,
-  opacity: 0.3
-});
-const wireframeBox = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
-wireframeBox.rotation.z = +Math.PI; // Match the cube rotation
-scene.add(wireframeBox);
+// Add wireframe outline for debugging (optional)
+let wireframeBox = null;
+if (SHOW_WIREFRAME) {
+  const wireframeGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const wireframeMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xffffff, 
+    wireframe: true,
+    transparent: true,
+    opacity: 0.3
+  });
+  wireframeBox = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+  wireframeBox.rotation.z = +Math.PI; // Match the cube rotation
+  scene.add(wireframeBox);
+}
 
 function applyBoundsScale() {
   const Lx = Math.abs(bounds.xmax - bounds.xmin);
@@ -927,7 +944,7 @@ function applyBoundsScale() {
   const sy = Ly / maxL;
   const sz = Lz / maxL;
   cube.scale.set(sx, sy, sz);
-  wireframeBox.scale.set(sx, sy, sz); // Apply same scaling to wireframe
+  if (wireframeBox) wireframeBox.scale.set(sx, sy, sz); // Apply same scaling to wireframe if it exists
 }
 
 // Lights for better background perception (not affecting shader)
@@ -1013,6 +1030,14 @@ const obsCamBtn = document.getElementById('obsCamBtn');
 const posangPSFSlider = document.getElementById('posangPSF');
 const posangPSFValue = document.getElementById('posangPSFValue');
 
+// PSF colormap controls
+const psfColormapModeSelect = document.getElementById('psfColormapMode');
+const psfVminSlider = document.getElementById('psfVmin');
+const psfVmaxSlider = document.getElementById('psfVmax');
+const psfVminValue = document.getElementById('psfVminValue');
+const psfVmaxValue = document.getElementById('psfVmaxValue');
+const psfManualControls = document.getElementById('psfManualControls');
+
 function updateMode() {
   renderMode = modeSelect.value === 'freq' ? 1 : 0;
   uniforms.uMode.value = renderMode;
@@ -1074,6 +1099,48 @@ function updatePosangPSF() {
 }
 posangPSFSlider && posangPSFSlider.addEventListener('input', updatePosangPSF);
 updatePosangPSF();
+
+// PSF colormap mode toggle
+function updatePsfColormapMode() {
+  psfColormapMode = psfColormapModeSelect.value;
+  if (psfManualControls) {
+    psfManualControls.style.display = psfColormapMode === 'manual' ? 'flex' : 'none';
+    psfManualControls.style.flexDirection = 'column';
+  }
+}
+
+// PSF vmin/vmax controls
+function updatePsfVmin() {
+  if (!psfVminSlider) return;
+  psfVmin = parseFloat(psfVminSlider.value);
+  if (psfVminValue) psfVminValue.textContent = psfVmin.toFixed(2);
+  // Ensure vmin <= vmax
+  if (psfVmin > psfVmax) {
+    psfVmax = psfVmin;
+    if (psfVmaxSlider) psfVmaxSlider.value = psfVmax.toString();
+    if (psfVmaxValue) psfVmaxValue.textContent = psfVmax.toFixed(2);
+  }
+}
+
+function updatePsfVmax() {
+  if (!psfVmaxSlider) return;
+  psfVmax = parseFloat(psfVmaxSlider.value);
+  if (psfVmaxValue) psfVmaxValue.textContent = psfVmax.toFixed(2);
+  // Ensure vmin <= vmax
+  if (psfVmax < psfVmin) {
+    psfVmin = psfVmax;
+    if (psfVminSlider) psfVminSlider.value = psfVmin.toString();
+    if (psfVminValue) psfVminValue.textContent = psfVmin.toFixed(2);
+  }
+}
+
+// Wire up event listeners
+psfColormapModeSelect && psfColormapModeSelect.addEventListener('change', updatePsfColormapMode);
+psfVminSlider && psfVminSlider.addEventListener('input', updatePsfVmin);
+psfVmaxSlider && psfVmaxSlider.addEventListener('input', updatePsfVmax);
+updatePsfColormapMode();
+updatePsfVmin();
+updatePsfVmax();
 
 // UI: frequency slider
 function updateFrequency() {
@@ -1272,12 +1339,25 @@ function render() {
     }
   }
   
+  // Apply PSF colormap range settings
+  let finalMinIntensity, finalMaxIntensity;
+  if (psfColormapMode === 'manual') {
+    // Use manual vmin/vmax (scaled to intensity range)
+    const intensityRange = maxIntensity - minIntensity;
+    finalMinIntensity = minIntensity + psfVmin * intensityRange;
+    finalMaxIntensity = minIntensity + psfVmax * intensityRange;
+  } else {
+    // Use auto range
+    finalMinIntensity = minIntensity;
+    finalMaxIntensity = maxIntensity;
+  }
+  
   // Create output pixel array for 8-bit display
   const outputPixels = new Uint8ClampedArray(blurTarget.width * blurTarget.height * 4);
   
   // Normalize intensities and apply Inferno colormap
-  const range = maxIntensity - minIntensity;
-  if (range > 0 && isFinite(minIntensity) && isFinite(maxIntensity)) {
+  const range = finalMaxIntensity - finalMinIntensity;
+  if (range > 0 && isFinite(finalMinIntensity) && isFinite(finalMaxIntensity)) {
     for (let i = 0; i < pixels.length; i += 4) {
       const intensity = pixels[i];
       const outIdx = i;
@@ -1290,7 +1370,7 @@ function render() {
         outputPixels[outIdx + 3] = 255;
       } else {
         // Above threshold: normalize to [0,1] and apply Inferno colormap
-        const normalized = (intensity - minIntensity) / range;
+        const normalized = Math.max(0, Math.min(1, (intensity - finalMinIntensity) / range));
         const color = infernoColor(normalized);
         if (!color || color.length < 3) {
           console.error('Invalid color returned', normalized, color);
