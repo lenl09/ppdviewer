@@ -1,6 +1,6 @@
 # PPDViewer - Protoplanetary Disk 3D Volume Renderer for CO Emission Volume
 
-Advanced Three.js-based volume ray tracer for visualizing recovered protoplanetary disk CO density volume. 
+`Three.js`-based volume ray tracer for visualizing recovered protoplanetary disk CO density volume. 
 Renders the disk in 3D space with orthographic projection, with highlighting for emission per frequency, with a non-physical Gaussian PSF simulation preview, very-non-physical spectral broadening slider, and simple observational parameter controls with inclination and position angle.
 
 ## Features
