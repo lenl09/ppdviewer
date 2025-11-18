@@ -1,0 +1,59 @@
+{
+  "nu0": 0.0,
+  "v_turb": 0.06,
+  "freqs_len": 115,
+  "shapes": {
+    "center_index": [
+      160,
+      160,
+      160
+    ],
+    "sigma_channels": [
+      160,
+      160,
+      160
+    ],
+    "fwhm_channels": [
+      160,
+      160,
+      160
+    ]
+  },
+  "volume_grid": {
+    "type": "disk-frame cartesian",
+    "Nx": 160,
+    "Ny": 160,
+    "Nz": 160,
+    "bbox": {
+      "x": [
+        -1.19678296528e+16,
+        1.19678296528e+16
+      ],
+      "y": [
+        -1.19678296528e+16,
+        1.19678296528e+16
+      ],
+      "z": [
+        0.0,
+        2991957413200000.0
+      ]
+    }
+  },
+  "observation": {
+    "incl_deg": 47.5,
+    "phi_deg": 0.0,
+    "posang_deg": 0.0,
+    "distance_pc": 122.0,
+    "fov_arcsec": 11.0
+  },
+  "mol": {
+    "transition": 0,
+    "nu0": 0.0,
+    "a_ud": 0.0,
+    "b_ud": 0.0,
+    "b_du": 0.0
+  },
+  "note": "center_index and sigma_channels are in disk-frame 3D grid (Ny, Nx, Nz) coordinates via KDTree nearest-neighbor mapping from ray samples. Use directly without frame rotation in shader.",
+  "co_source": "parametric",
+  "timestamp": "2025-11-17 23:17:21"
+}
