@@ -40,8 +40,8 @@
     <div id="ui">
       <label for="mode">Mode</label>
       <select id="mode">
-        <option value="plain">Plain</option>
         <option value="freq">Frequency slice</option>
+        <option value="plain">Plain</option>        
       </select>
       <span style="margin-left:12px"></span>
       <label for="freqSlider" id="freqLabel" style="margin-left:8px;display:none;">Freq</label>
@@ -69,10 +69,10 @@
   <label for="showWeight" id="showWeightLabel" style="margin-left:8px;display:none;">Weight</label>
   <input id="showWeight" type="checkbox" style="display:none;" />
   <label for="minSigmaCh" id="minSigmaChLabel" style="margin-left:8px;display:none;">Turbulence</label>
-  <input id="minSigmaCh" type="range" min="0.0" max="10.0" step="0.1" value="0.0" style="display:none;" />
+  <input id="minSigmaCh" type="range" min="0.0" max="25.0" step="0.5" value="0.0" style="display:none;" />
   <span id="minSigmaChValue" style="display:none;font-size:0.75em;width:54px;text-align:right;">0.00</span>
       <label for="blurSize" style="margin-left:8px;">PSF Blur</label>
-  <input id="blurSize" type="range" min="0.0" max="30.0" step="1" value="10.0" />
+  <input id="blurSize" type="range" min="0.0" max="8.0" step="0.2" value="0.0" />
   <span id="blurSizeValue" style="font-size:0.75em;width:42px;text-align:right;">10</span>
   <button id="obsCamBtn" style="margin-left:12px;">Match observation camera</button>
     </div>

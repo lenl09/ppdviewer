@@ -6,6 +6,8 @@ const infernoColormap = [
   [0,0,4],[1,0,5],[1,1,6],[1,1,8],[2,1,10],[2,2,12],[2,2,14],[3,2,16],[4,3,18],[4,3,20],[5,4,23],[6,4,25],[7,5,27],[8,5,29],[9,6,31],[10,7,34],[11,7,36],[12,8,38],[13,8,41],[14,9,43],[16,9,45],[17,10,48],[18,10,50],[20,11,52],[21,11,55],[22,11,57],[24,12,60],[25,12,62],[27,12,65],[28,12,67],[30,12,69],[31,12,72],[33,12,74],[35,12,76],[36,12,79],[38,12,81],[40,11,83],[41,11,85],[43,11,87],[45,11,89],[47,10,91],[49,10,92],[50,10,94],[52,10,95],[54,9,97],[56,9,98],[57,9,99],[59,9,100],[61,9,101],[62,9,102],[64,10,103],[66,10,104],[68,10,104],[69,10,105],[71,11,106],[73,11,106],[74,12,107],[76,12,107],[77,13,108],[79,13,108],[81,14,108],[82,14,109],[84,15,109],[85,15,109],[87,16,110],[89,16,110],[90,17,110],[92,18,110],[93,18,110],[95,19,110],[97,19,110],[98,20,110],[100,21,110],[101,21,110],[103,22,110],[105,22,110],[106,23,110],[108,24,110],[109,24,110],[111,25,110],[113,25,110],[114,26,110],[116,26,110],[117,27,110],[119,28,109],[120,28,109],[122,29,109],[124,29,109],[125,30,109],[127,30,108],[128,31,108],[130,32,108],[132,32,107],[133,33,107],[135,33,107],[136,34,106],[138,34,106],[140,35,105],[141,35,105],[143,36,105],[144,37,104],[146,37,104],[147,38,103],[149,38,103],[151,39,102],[152,39,102],[154,40,101],[155,41,100],[157,41,100],[159,42,99],[160,42,99],[162,43,98],[163,44,97],[165,44,96],[166,45,96],[168,46,95],[169,46,94],[171,47,94],[173,48,93],[174,48,92],[176,49,91],[177,50,90],[179,50,90],[180,51,89],[182,52,88],[183,53,87],[185,53,86],[186,54,85],[188,55,84],[189,56,83],[191,57,82],[192,58,81],[193,58,80],[195,59,79],[196,60,78],[198,61,77],[199,62,76],[200,63,75],[202,64,74],[203,65,73],[204,66,72],[206,67,71],[207,68,70],[208,69,69],[210,70,68],[211,71,67],[212,72,66],[213,74,65],[215,75,63],[216,76,62],[217,77,61],[218,78,60],[219,80,59],[221,81,58],[222,82,56],[223,83,55],[224,85,54],[225,86,53],[226,87,52],[227,89,51],[228,90,49],[229,92,48],[230,93,47],[231,94,46],[232,96,45],[233,97,43],[234,99,42],[235,100,41],[235,102,40],[236,103,38],[237,105,37],[238,106,36],[239,108,35],[239,110,33],[240,111,32],[241,113,31],[241,115,29],[242,116,28],[243,118,27],[243,120,25],[244,121,24],[245,123,23],[245,125,21],[246,126,20],[246,128,19],[247,130,18],[247,132,16],[248,133,15],[248,135,14],[248,137,12],[249,139,11],[249,140,10],[249,142,9],[250,144,8],[250,146,7],[250,148,7],[251,150,6],[251,151,6],[251,153,6],[251,155,6],[251,157,7],[252,159,7],[252,161,8],[252,163,9],[252,165,10],[252,166,12],[252,168,13],[252,170,15],[252,172,17],[252,174,18],[252,176,20],[252,177,22],[252,179,24],[252,181,26],[252,183,28],[252,185,30],[251,187,33],[251,189,35],[251,191,37],[250,193,39],[250,195,42],[250,197,44],[249,199,47],[249,201,49],[248,203,52],[248,205,55],[247,207,58],[247,209,61],[246,211,64],[245,213,67],[245,215,70],[244,217,73],[243,219,76],[243,221,80],[242,223,83],[241,225,86],[241,227,90],[240,229,93],[239,231,97],[238,233,100],[237,235,104],[236,237,108],[236,239,111],[235,241,115],[234,243,119],[233,245,123],[232,247,127],[231,249,131],[230,251,135],[229,253,139],[228,255,143]
 ];
 
+const BASE_URL = './data/freqmap_20251117-190836';
+
 // Convert inferno index (0-1) to RGB with linear interpolation
 function infernoColor(t) {
   // Clamp t to [0, 1]
@@ -283,7 +285,7 @@ async function loadExternalDensity() {
 }
 
 // Rendering mode: 0 = Plain, 1 = Frequency slice (placeholder)
-let renderMode = 0;
+let renderMode = 1;
 
 // Frequency slice data
 let freqData = {
@@ -304,7 +306,7 @@ let sigmaTex = null;
 // Load frequency mapping data
 async function loadFrequencyData() {
   try {
-    const baseUrl = './data/freqmap_20251105-014527';
+    const baseUrl = BASE_URL;
     
     // Load freqs.json
     const freqRes = await fetch(`${baseUrl}/freqs.json`);
@@ -577,6 +579,7 @@ const uniforms = {
   uWeightGamma: { value: 1.0 },
   uShowWeight: { value: 0 },
   uMinSigmaCh: { value: 0.25 },
+  uCameraDirWorld: { value: new THREE.Vector3() },
 };
 
 // Start loading external density and frequency data after uniforms exist
@@ -609,18 +612,22 @@ const fragmentShader = /* glsl */`
   uniform float uStep;
   uniform mat4 uInvModelMatrix;
   uniform vec3 uCameraPos;
-  uniform vec3 uRenderBBox; // half extent of cube in local space
+  uniform vec3 uRenderBBox;
   uniform float uDensity;
   uniform float uLogMin;
   uniform float uLogMax;
-  uniform vec3 uTexelStep; // for potential gradient needs
-  uniform int uMode; // 0=Plain, 1=Frequency slice
-  uniform float uBgBrightness; // brightness of background disk in freq mode
+  uniform vec3 uTexelStep;
+  uniform int uMode;
+  uniform float uBgBrightness;
   uniform float uWeightGamma;
   uniform int uShowWeight;
   uniform float uMinSigmaCh;
+  uniform vec3 uCameraDirWorld;
+  
+  // Observation geometry (in radians)
+  uniform float uInclRad;
+  uniform float uPhiRad;
 
-  // Approximate error function for band integration
   float erfApprox(float x){
     float s = sign(x);
     x = abs(x);
@@ -629,7 +636,6 @@ const fragmentShader = /* glsl */`
     return s * sqrt(y);
   }
 
-  // Ray-box intersection with axis-aligned box [-h,h]
   bool intersectBox(vec3 ro, vec3 rd, vec3 h, out float tmin, out float tmax) {
     vec3 inv = 1.0 / rd;
     vec3 t0 = (-h - ro) * inv;
@@ -641,18 +647,43 @@ const fragmentShader = /* glsl */`
     return tmax > max(tmin, 0.0);
   }
 
+  // Rotate a point back into disk frame (inverse of observer rotation)
+  // Inverse of: disk_frame = rotate(obs_frame, incl, -phi)
+  // So: obs_frame = rotate(disk_frame, -incl, phi)
+  // Inverse: disk_frame = rotate(obs_frame, incl, -phi)
+  vec3 rotateToDiskFrame(vec3 p, float inclRad, float phiRad) {
+    // Build rotation matrix: Rz(-phi) @ Rx(incl)
+    float ci = cos(inclRad);
+    float si = sin(inclRad);
+    float cp = cos(-phiRad);
+    float sp = sin(-phiRad);
+    
+    // Rx(incl)
+    vec3 p1 = vec3(p.x, p.y * ci - p.z * si, p.y * si + p.z * ci);
+    
+    // Rz(-phi)
+    vec3 p2 = vec3(p1.x * cp - p1.y * sp, p1.x * sp + p1.y * cp, p1.z);
+    
+    return p2;
+  }
+
   void main() {
-    // World to local (volume) space
-    vec3 ro = (uInvModelMatrix * vec4(uCameraPos, 1.0)).xyz;
-    vec3 rd = normalize((uInvModelMatrix * vec4(normalize(vWorldPos - uCameraPos), 0.0)).xyz);
+    // Ray origin: fragment position on cube surface (object space)
+    vec3 ro = (uInvModelMatrix * vec4(vWorldPos, 1.0)).xyz;
+    
+    // Ray direction: constant camera look direction (object space)
+    vec3 rd = normalize((uInvModelMatrix * vec4(uCameraDirWorld, 0.0)).xyz);
 
     float t0, t1;
     if (!intersectBox(ro, rd, uRenderBBox, t0, t1)) discard;
-    // Weight debug mode: show freqWeight for mid-point only, ignore density & absorption
+
     if (uShowWeight == 1) {
       float tm = (t0 + t1) * 0.5;
       vec3 p = ro + rd * tm;
-      vec3 uvw = p / (2.0 * uRenderBBox) + 0.5;
+      // Rotate to disk frame before texture lookup
+      vec3 pDisk = rotateToDiskFrame(p, uInclRad, uPhiRad);
+      vec3 uvw = pDisk / (2.0 * uRenderBBox) + 0.5;
+      
       float centerIdx = texture(uCenterIndexTex, uvw).r;
       float baseSigma = texture(uSigmaTex, uvw).r;
       float sigmaChRaw = baseSigma * uBroadeningScale;
@@ -669,8 +700,6 @@ const fragmentShader = /* glsl */`
       float wNorm = wBand / max(wMax, 1e-6);
       wNorm = clamp(wNorm, 0.0, 1.0);
       float freqWeight = (uUseBand == 1) ? wNorm : freqWeightGauss;
-      freqWeight = pow(clamp(freqWeight,0.0,1.0), uWeightGamma);
-      // Debug: R = gaussian (no gamma), G = band (no gamma), B = broadened sigma normalized
       float gaussNoGamma = exp(-0.5 * (dch*dch)/(max(baseSigma,1e-6)*max(baseSigma,1e-6)));
       float bandNoGamma; {
         float a1b = (dch + 0.5) * invSqrt2 / max(baseSigma,1e-6);
@@ -681,7 +710,7 @@ const fragmentShader = /* glsl */`
         float wMaxb = 0.5 * (erfApprox(ocA1b) - erfApprox(ocA0b));
         bandNoGamma = clamp(wb / max(wMaxb,1e-6), 0.0, 1.0);
       }
-      float sigmaVis = (sigmaChRaw - uMinSigmaCh) / (uMinSigmaCh + 5.0); // rough normalization
+      float sigmaVis = (sigmaChRaw - uMinSigmaCh) / (uMinSigmaCh + 5.0);
       gl_FragColor = vec4(gaussNoGamma, bandNoGamma, clamp(sigmaVis,0.0,1.0), 1.0);
       return;
     }
@@ -689,99 +718,76 @@ const fragmentShader = /* glsl */`
     t0 = max(t0, 0.0);
     float t = t0;
     const int MAX_STEPS = 768;
-    // Direct Volume Rendering (DVR) with Beer-Lambert absorption
     vec3 acc = vec3(0.0);
-    float T = 1.0; // accumulated transmittance
+    float T = 1.0;
     for (int i = 0; i < MAX_STEPS; i++) {
       if (t > t1 || T < 0.01) break;
       vec3 p = ro + rd * t;
-      vec3 uvw = p / (2.0 * uRenderBBox) + 0.5;
-      // Density from external volume (float32)
+      // **KEY FIX**: Rotate to disk frame before texture lookup
+      vec3 pDisk = rotateToDiskFrame(p, uInclRad, uPhiRad);
+      vec3 uvw = pDisk / (2.0 * uRenderBBox) + 0.5;
+      
       float s_raw = texture(uDensityVol, uvw).r;
-      // Log mapping to [0,1] using window [uLogMin, uLogMax]
       float s = 0.0;
       if (s_raw > 0.0) {
-        float lv = log2(s_raw) / log2(10.0); // log10(s_raw)
+        float lv = log2(s_raw) / log2(10.0);
         s = clamp((lv - uLogMin) / max(uLogMax - uLogMin, 1e-5), 0.0, 1.0);
       }
       
-      // Color selection based on mode
       vec3 colLin;
-      float opacityScale = 1.0; // Scale for opacity/absorption
+      float opacityScale = 1.0;
       
       if (uMode == 1) {
-        // Frequency slice mode: dynamic thermal broadening weight
+        // Frequency slice mode
         float centerIdx = texture(uCenterIndexTex, uvw).r;
-  float baseSigma = texture(uSigmaTex, uvw).r;
-  float sigmaChRaw = baseSigma * uBroadeningScale;
-  float sigmaCh = max(sigmaChRaw, uMinSigmaCh);
-  float dch = float(uFSel) - centerIdx;
+        float baseSigma = texture(uSigmaTex, uvw).r;
+        float sigmaChRaw = baseSigma * uBroadeningScale;
+        float sigmaCh = max(sigmaChRaw, uMinSigmaCh);
+        float dch = float(uFSel) - centerIdx;
         float freqWeightGauss = exp(-0.5 * (dch*dch)/(sigmaCh*sigmaCh));
-  // Band-integrated weight using approximate erf
-  float invSqrt2 = 0.70710678;
-  float a1 = (dch + 0.5) * invSqrt2 / sigmaCh;
-  float a0 = (dch - 0.5) * invSqrt2 / sigmaCh;
+        float invSqrt2 = 0.70710678;
+        float a1 = (dch + 0.5) * invSqrt2 / sigmaCh;
+        float a0 = (dch - 0.5) * invSqrt2 / sigmaCh;
         float wBand = 0.5 * (erfApprox(a1) - erfApprox(a0));
         float ocA1 = 0.5 * invSqrt2 / sigmaCh;
         float ocA0 = -0.5 * invSqrt2 / sigmaCh;
         float wMax = 0.5 * (erfApprox(ocA1) - erfApprox(ocA0));
         float wNorm = wBand / max(wMax, 1e-6);
         wNorm = clamp(wNorm, 0.0, 1.0);
-  float freqWeight = (uUseBand == 1) ? wNorm : freqWeightGauss;
-  // Apply gamma shaping for visibility
-  freqWeight = pow(clamp(freqWeight, 0.0, 1.0), uWeightGamma);
+        float freqWeight = (uUseBand == 1) ? wNorm : freqWeightGauss;
+        freqWeight = pow(clamp(freqWeight, 0.0, 1.0), uWeightGamma);
         
-        // Get velocity shift from velocity texture
-        // -1 = blue-shifted (approaching), +1 = red-shifted (receding)
         float velocityParam = texture(uVelocityTex, uvw).r;
-        
-        // Clamp velocity to reasonable range
         velocityParam = clamp(velocityParam, -1.0, 1.0);
         
-        // Blue-white-red colormap
         vec3 dopplerColor;
         if (velocityParam < -0.05) {
-          // Blue-shifted: interpolate blue to white
-          float t = (velocityParam + 1.0) / 0.95; // remap [-1, -0.05] to [0, 1]
-          dopplerColor = mix(vec3(0.2, 0.4, 1.0), vec3(1.0, 1.0, 1.0), t);
+          float t_vel = (velocityParam + 1.0) / 0.95;
+          dopplerColor = mix(vec3(0.2, 0.4, 1.0), vec3(1.0, 1.0, 1.0), t_vel);
         } else if (velocityParam > 0.05) {
-          // Red-shifted: interpolate white to red
-          float t = (velocityParam - 0.05) / 0.95; // remap [0.05, 1] to [0, 1]
-          dopplerColor = mix(vec3(1.0, 1.0, 1.0), vec3(1.0, 0.3, 0.2), t);
+          float t_vel = (velocityParam - 0.05) / 0.95;
+          dopplerColor = mix(vec3(1.0, 1.0, 1.0), vec3(1.0, 0.3, 0.2), t_vel);
         } else {
-          // Near zero velocity: white
           dopplerColor = vec3(1.0, 1.0, 1.0);
         }
         
-        // Mix grayscale base with doppler color based on frequency weight
         vec3 baseColor = vec3(s * uBgBrightness);
-        float highlightFactor = freqWeight; // already gamma-shaped
-        if (uShowWeight == 1) {
-          // Visualize weight directly with inferno-like ramp (simple)
-          colLin = vec3(highlightFactor);
-        } else {
-          colLin = mix(baseColor, dopplerColor * s * 1.5, highlightFactor);
-        }
-        
-        // Reduce opacity of background disk (low freqWeight) based on uBgBrightness
-        // High freqWeight = full opacity, low freqWeight = reduced by uBgBrightness
-  opacityScale = mix(uBgBrightness, 1.0, highlightFactor);
+        float highlightFactor = freqWeight;
+        colLin = mix(baseColor, dopplerColor * s * 1.5, highlightFactor);
+        opacityScale = mix(uBgBrightness, 1.0, highlightFactor);
       } else {
-        // Plain grayscale
         colLin = vec3(s);
       }
       
-      // Opacity from mapped density directly, scaled by density slider and opacityScale
       float sigma_a = max(s, 0.0) * uDensity * opacityScale;
-      float stepLen = uStep; // local parameterization approximates length
+      float stepLen = uStep;
       float a = 1.0 - exp(-sigma_a * stepLen);
-      // Pre-multiplied compositing with transmittance
       acc += T * a * colLin;
       T *= (1.0 - a);
       t += uStep;
     }
-  float outA = 1.0 - T;
-  gl_FragColor = vec4(acc, outA);
+    float outA = 1.0 - T;
+    gl_FragColor = vec4(acc, outA);
   }
 `;
 
@@ -894,7 +900,22 @@ console.log('Gaussian blur setup complete', {
 
 // Unit cube geometry centered at origin; scale to half-extent 0.5 so local box is [-0.5,0.5]
 const cube = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), material);
+// Rotate volume 90 degrees clockwise around Z-axis
+// cube.rotation.z = -Math.PI / 2;
+cube.rotation.z = +Math.PI;
 scene.add(cube);
+
+// Add wireframe outline for debugging
+const wireframeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const wireframeMaterial = new THREE.MeshBasicMaterial({ 
+  color: 0xffffff, 
+  wireframe: true,
+  transparent: true,
+  opacity: 0.3
+});
+const wireframeBox = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+wireframeBox.rotation.z = +Math.PI; // Match the cube rotation
+scene.add(wireframeBox);
 
 function applyBoundsScale() {
   const Lx = Math.abs(bounds.xmax - bounds.xmin);
@@ -906,6 +927,7 @@ function applyBoundsScale() {
   const sy = Ly / maxL;
   const sz = Lz / maxL;
   cube.scale.set(sx, sy, sz);
+  wireframeBox.scale.set(sx, sy, sz); // Apply same scaling to wireframe
 }
 
 // Lights for better background perception (not affecting shader)
@@ -942,7 +964,7 @@ function computeObservationPose(inclDeg, phiDeg, posangDeg) {
 }
 
 // Default observation parameters
-const OBS_DEFAULT = { incl: 47.5, phi: 0.0, posang: 312.0 };
+const OBS_DEFAULT = { incl: 180 + 47.5, phi: 0.0, posang: 312.0 };
 let obsDefaultPose = null;
 
 function applyObservationPose() {
@@ -1153,7 +1175,7 @@ updateBandIntegrate();
 
 // UI: weight gamma and showWeight
 // Gamma fixed at 1.0 per request
-uniforms.uWeightGamma.value = 1.0;
+uniforms.uWeightGamma.value = 3.0;
 if (weightGammaValue) weightGammaValue.textContent = '1.00';
 
 function updateShowWeight(){
@@ -1191,6 +1213,11 @@ function render() {
   cube.updateMatrixWorld();
   uniforms.uInvModelMatrix.value.copy(cube.matrixWorld).invert();
   uniforms.uCameraPos.value.copy(camera.position);
+  
+  // Update camera world direction for orthographic raymarching
+  const camDir = new THREE.Vector3();
+  camera.getWorldDirection(camDir); // points from camera towards the scene
+  uniforms.uCameraDirWorld.value.copy(camDir);
 
   // Update camera controls (smooth damping)
   controls.update();
