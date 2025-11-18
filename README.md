@@ -1,38 +1,113 @@
-# Three.js Volume Renderer (Sphere)
+# PPDViewer - Protoplanetary Disk 3D Volume Renderer for CO Emission Volume
 
-Simple volume ray marcher in Three.js that renders a 128×128×128 volume centered at the origin, with a sphere of radius 32 voxels. Includes two transfer functions (grayscale, hot) and two rendering modes (Direct Volume Rendering and Iso-surface).
+Advanced Three.js-based volume ray tracer for visualizing recovered protoplanetary disk CO density volume. 
+Renders the disk in 3D space with orthographic projection, with highlighting for emission per frequency, with a non-physical Gaussian PSF simulation preview, very-non-physical spectral broadening slider, and simple observational parameter controls with inclination and position angle.
 
-## What it does
-- Builds a 128³ Uint8 volume with a soft-edged sphere at the center
-- Ray-marches a 3D texture inside a unit cube around the origin
-- Applies a 1D transfer function texture (grayscale or hot)
-- Fixed camera looking at the center
-- Toggle between Direct Volume Rendering (DVR) and Iso-surface with a threshold slider
+## Features
 
-## Run locally
-Use any static file server. On macOS with Python installed you can run:
+### Core Rendering
+- **Orthographic Volume Ray Marching**: Proper orthographic projection with parallel rays for consistent magnification across all viewing angles
+- **External Data Loading**: Supports CO density volumes exported from `radjax` (RAW+JSON format) and frequency mapping data (NPY files)
+- **Dual View System**: Main 3D volume view + PSF blurred thumbnail (256×256) with Inferno colormap
+- **Debug Wireframe**: Optional white wireframe outline to visualize volume boundaries
+
+## Data Requirements
+
+The viewer expects data in the `./data/` directory:
+
+### Frequency Mapping Data
+- `freqs.json`: Array of frequency values in Hz
+- `center_index.npy`: 3D array of center frequency indices per voxel
+- `sigma_channels.npy`: 3D array of thermal broadening widths
+
+### Volume Data (Optional)
+- `co_volume_meanT_160x160x160.raw`: Float32 volume data
+- `co_volume_meanT_160x160x160.json`: Metadata with shape and bounds
+
+## Installation & Usage
 
 ```bash
-# Option A: Python 3
+# Start local server
 python3 -m http.server 5173
 
-# Option B: Node (if you prefer)
-# npx serve -l 5173
-```
-
-Then open:
-
-```
-http://localhost:5173/
+# Open in browser
+open http://localhost:5173/
 ```
 
 ## Controls
-- Transfer function: choose between Grayscale and Hot.
-- Mode: choose between Direct Volume and Iso-surface.
-- Iso threshold: active in Iso mode; sets the isovalue (0..1).
 
-## Notes
-- Requires a browser with WebGL2 and 3D texture support (sampler3D). Chrome, Edge, and Firefox support this.
-- Step size is set to `0.75 / 128` for speed; reduce `uStep` for higher quality.
-- The render uses front-to-back pre-multiplied alpha compositing with early-out.
- - Iso-surface mode shades the first threshold crossing using a simple headlight Lambert model; normals from central differences on the volume.
+### Rendering Mode
+- **Plain**: Grayscale volume rendering of just the disk CO density
+- **Frequency Slice**: Doppler-shifted frequency slice 3D highlighting 
+
+### Volume Controls
+- **Density**: Opacity scaling (1-10x)
+- **Step Size**: Ray marching step size (0.25-2.0x)
+- **Log Window**: Min/max values for logarithmic mapping
+
+### Frequency Mode
+- **Frequency Slider**: Select observation frequency channel
+- **Disk Opacity**: Background disk visibility (0.0-1.0)
+- **Turbulence**: **NON-PHYSICAL** Minimum sigma broadening threshold (will be updated to physical model later)
+
+### ALMA-view Simulation Controls
+- **PSF Blur**: Gaussian kernel size for point spread function
+- **Position Angle**: Image-plane rotation angle (PSF view only)
+
+## Technical Details
+
+### Shader Architecture
+- **Frequency Weighting**: GPU-computed per-fragment Gaussian/band integration
+- **Coordinate Transforms**: Automatic observer frame ↔ disk frame rotation
+- **Absorption Model**: Beer-Lambert law with pre-multiplied alpha compositing
+
+### Data Processing Pipeline
+1. Load external volume and frequency data
+2. Build velocity and broadening textures
+3. Upload as 3D textures for GPU sampling
+4. Real-time shader-based frequency weighting
+5. Post-process PSF simulation with Inferno mapping
+
+## Browser Requirements
+
+- **WebGL2**: Required for 3D texture sampling and float render targets
+- **Modern Browser**: Chrome 57+, Firefox 51+, Safari 15+, Edge 79+
+- **Hardware**: Dedicated GPU recommended for smooth performance
+
+## Data Format Specifications
+
+### NPY Files
+- Standard NumPy binary format with little-endian encoding
+- Supported dtypes: `<f4`, `<f8`, `<i4`, `<i8`, `<u1`
+- Shape information parsed from header
+
+### Volume Metadata (JSON)
+```json
+{
+  "shape": [nz, ny, nx],
+  "bounds": {
+    "x": [xmin, xmax],
+    "y": [ymin, ymax], 
+    "z": [zmin, zmax]
+  }
+}
+```
+
+## Console API
+
+```javascript
+// Get current camera state
+const pose = window.getPose();
+
+// Apply saved camera state
+window.applyPose({
+  position: [x, y, z],
+  target: [tx, ty, tz],
+  quaternion: [qx, qy, qz, qw],
+  zoom: 1.0
+});
+
+// Access controls
+window.ppd.camera  // Three.js camera
+window.ppd.controls // OrbitControls instance
+```
