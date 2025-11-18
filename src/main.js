@@ -159,7 +159,8 @@ const camera = new THREE.OrthographicCamera(
   orthoZoom, -orthoZoom,
   0.1, 100
 );
-camera.position.set(1.5, 1.25, 1.8);
+// Start at inclination 0 (face-on) with position angle 0
+camera.position.set(0, 0, 2.5);
 camera.lookAt(0, 0, 0);
 
 // Orbit controls for interactive camera orbiting
@@ -954,14 +955,15 @@ function applyBoundsScale() {
 }
 
 // Add 3D axis arrows for reference
+let axisArrows = [];
 {
-  const axisLength = 1.2;
+  const axisLength = 0.5;
   
   // X-axis (red)
   {
     const arrow = new THREE.ArrowHelper(
       new THREE.Vector3(1, 0, 0),
-      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(-0.5, -0.5, 0),
       axisLength,
       0xff0000,
       axisLength/10,  // head length
@@ -975,13 +977,14 @@ function applyBoundsScale() {
       }
     });
     scene.add(arrow);
+    axisArrows.push(arrow);
   }
   
   // Y-axis (green)
   {
     const arrow = new THREE.ArrowHelper(
       new THREE.Vector3(0, 1, 0),
-      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(-0.5, -0.5, 0),
       axisLength,
       0x00ff00,
       axisLength/10,  // head length
@@ -994,13 +997,14 @@ function applyBoundsScale() {
       }
     });
     scene.add(arrow);
+    axisArrows.push(arrow);
   }
   
   // Z-axis (blue)
   {
     const arrow = new THREE.ArrowHelper(
       new THREE.Vector3(0, 0, 1),
-      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(-0.5, -0.5, 0),
       axisLength,
       0x0000ff,
       axisLength/10,  // head length
@@ -1013,6 +1017,7 @@ function applyBoundsScale() {
       }
     });
     scene.add(arrow);
+    axisArrows.push(arrow);
   }
 }
 
@@ -1086,6 +1091,12 @@ function applyObservationPose() {
   const forward = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
   camera.position.copy(controls.target.clone().sub(forward.multiplyScalar(dist)));
   controls.update();
+  
+  // Set the position angle slider to OBS_DEFAULT.posang
+  if (posangPSFSlider) {
+    posangPSFSlider.value = OBS_DEFAULT.posang;
+    if (posangPSFValue) posangPSFValue.textContent = `${OBS_DEFAULT.posang.toFixed(0)}°`;
+  }
 }
 
 function computeAndSetObservationDefault() {
@@ -1128,6 +1139,8 @@ const densityValue = document.getElementById('densityValue');
 const blurSizeValue = document.getElementById('blurSizeValue');
 const obsCamBtn = document.getElementById('obsCamBtn');
 const alignYZBtn = document.getElementById('alignYZBtn');
+const toggleAxisBtn = document.getElementById('toggleAxisBtn');
+const lockYZPlaneBtn = document.getElementById('lockYZPlaneBtn');
 // PSF view rotation (image-plane) controls
 const posangPSFSlider = document.getElementById('posangPSF');
 const posangPSFValue = document.getElementById('posangPSFValue');
@@ -1143,7 +1156,7 @@ const psfManualControls = document.getElementById('psfManualControls');
 // Inclination slider (for observational geometry)
 const inclSlider = document.getElementById('inclSlider');
 const inclValue = document.getElementById('inclValue');
-let currentInclination = 47.5; // Default inclination in degrees (ALMA convention)
+let currentInclination = 0; // Default inclination in degrees (ALMA convention, 0 = face-on)
 
 function updateMode() {
   renderMode = modeSelect.value === 'freq' ? 1 : 0;
@@ -1195,8 +1208,7 @@ function updateMode() {
 }
 modeSelect.addEventListener('change', updateMode);
 updateMode();
-// Compute and apply observation default at startup
-computeAndSetObservationDefault();
+
 function updatePosangPSF() {
   if (!posangPSFSlider) return;
   const angDeg = parseFloat(posangPSFSlider.value);
@@ -1384,6 +1396,33 @@ obsCamBtn && obsCamBtn.addEventListener('click', applyObservationPose);
 // Button: Align camera to X-Y plane
 alignYZBtn && alignYZBtn.addEventListener('click', alignCameraToXY);
 
+// Button: Toggle axis arrows visibility
+let axisArrowsVisible = true;
+function toggleAxisArrows() {
+  axisArrowsVisible = !axisArrowsVisible;
+  for (const arrow of axisArrows) {
+    arrow.visible = axisArrowsVisible;
+  }
+  if (toggleAxisBtn) {
+    toggleAxisBtn.textContent = axisArrowsVisible ? 'Hide Axes' : 'Show Axes';
+  }
+}
+toggleAxisBtn && toggleAxisBtn.addEventListener('click', toggleAxisArrows);
+
+// Lock camera to Y-Z plane movement
+let yzPlaneLocked = false;
+function toggleYZPlaneLock() {
+  yzPlaneLocked = !yzPlaneLocked;
+  if (lockYZPlaneBtn) {
+    lockYZPlaneBtn.textContent = yzPlaneLocked ? 'Unlock from Y-Z plane' : 'Lock to Y-Z plane';
+  }
+  // Enable/disable inclination slider based on lock status
+  if (inclSlider) {
+    inclSlider.disabled = !yzPlaneLocked;
+  }
+}
+lockYZPlaneBtn && lockYZPlaneBtn.addEventListener('click', toggleYZPlaneLock);
+
 // Inclination slider: update camera based on slider (-90 to 90 range)
 // 0 = face-on, 90 = edge-on, -90 = edge-on from other side
 function updateInclinationFromSlider() {
@@ -1453,6 +1492,23 @@ function render() {
 
   // Update camera controls (smooth damping)
   controls.update();
+
+  // Apply Y-Z plane lock constraint if enabled
+  if (yzPlaneLocked) {
+    const camPos = camera.position;
+    const targetPos = controls.target;
+    // Keep x constant at its starting position (typically where we started)
+    // Allow only y and z to change
+    const dist = camPos.distanceTo(targetPos);
+    const targetDist = new THREE.Vector3(targetPos.x, 0, 0); // x-component of target
+    
+    // Compute direction in Y-Z plane
+    const toCamera = new THREE.Vector3(0, camPos.y - targetPos.y, camPos.z - targetPos.z);
+    if (toCamera.length() > 1e-6) {
+      toCamera.normalize().multiplyScalar(dist);
+      camera.position.set(targetPos.x + toCamera.x, targetPos.y + toCamera.y, targetPos.z + toCamera.z);
+    }
+  }
 
   // Update inclination slider based on current camera position
   const newIncl = getInclinationFromCamera();

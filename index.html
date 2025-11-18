@@ -36,6 +36,11 @@
             <div class="view-label">PSF Blurred</div>
             <div id="view2-controls" style="position:absolute; top:6px; left:6px; right:6px; display:flex; flex-direction:column; gap:4px; background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:4px 6px; font-size:0.75em;">
               <div style="display:flex; align-items:center; gap:6px;">
+                <label for="blurSize">PSF Blur</label>
+                <input id="blurSize" type="range" min="0.0" max="8.0" step="0.2" value="0.0" style="flex:1;" />
+                <span id="blurSizeValue" style="min-width:35px;">0</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
                 <label for="posangPSF">Pos angle</label>
                 <input id="posangPSF" type="range" min="0" max="360" step="1" value="0" style="flex:1;" />
                 <span id="posangPSFValue">0°</span>
@@ -60,11 +65,14 @@
                 </div>
               </div>
             </div>
+            <button id="obsCamBtn" style="position:absolute; bottom:6px; right:6px; width:80px; padding:4px 6px; font-size:0.7em; white-space:normal; word-wrap:break-word; overflow-wrap:break-word;">Match obs camera</button>
       </div>
       <div id="inclSliderContainer">
         <label id="inclLabel">Inclination</label>
-        <input id="inclSlider" type="range" min="-89.99" max="89.99" step="0.5" value="-47.5" />
-        <span id="inclValue">-47.5°</span>
+        <input id="inclSlider" type="range" min="-89.99" max="89.99" step="0.5" value="0" disabled />
+        <span id="inclValue">0°</span>
+        <button id="lockYZPlaneBtn" style="margin-top:8px; width:100%; font-size:0.75em;">Lock to Y-Z plane</button>
+        <button id="alignYZBtn" style="margin-top:4px; width:100%; font-size:0.75em;">Align to Y-Z</button>
       </div>
     </div>
     <div id="ui">
@@ -101,11 +109,7 @@
   <label for="minSigmaCh" id="minSigmaChLabel" style="margin-left:8px;display:none;">Turbulence</label>
   <input id="minSigmaCh" type="range" min="0.0" max="25.0" step="0.5" value="0.0" style="display:none;" />
   <span id="minSigmaChValue" style="display:none;font-size:0.75em;width:54px;text-align:right;">0.00</span>
-      <label for="blurSize" style="margin-left:8px;">PSF Blur</label>
-  <input id="blurSize" type="range" min="0.0" max="8.0" step="0.2" value="0.0" />
-  <span id="blurSizeValue" style="font-size:0.75em;width:42px;text-align:right;">10</span>
-  <button id="obsCamBtn" style="margin-left:12px;">Match observation camera</button>
-  <button id="alignYZBtn" style="margin-left:8px;">Align to Y-Z</button>
+  <button id="toggleAxisBtn" style="margin-left:8px;">Hide Axes</button>
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>
